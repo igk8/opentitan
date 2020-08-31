@@ -74,6 +74,7 @@ module i2c_fsm (
   logic [19:0] tcount_d;      // next counter for setting delays
   logic        load_tcount;   // indicates counter must be loaded
   logic [30:0] stretch;       // counter for clock being stretched by target
+  logic [19:0] tcount_scl;    // SCL pulse duration in clock units
 
   // Bit and byte counter variables
   logic [2:0]  bit_index;     // bit being transmitted to or read from the bus
@@ -96,6 +97,8 @@ module i2c_fsm (
   logic        log_start;     // indicates start is been issued
   logic        log_stop;      // indicates stop is been issued
   logic        restart;       // indicates repeated start state is entered into
+
+  assign tcount_scl = t_r_i + thigh_i + t_f_i;
 
   // Temporary assignments
   assign tx_fifo_rready_o = tx_fifo_rvalid_i;
@@ -609,11 +612,11 @@ module i2c_fsm (
       end
       // ReadClockPulse: SCL is released, the indexed bit value is read off SDA
       ReadClockPulse : begin
+        if (tcount_q == tcount_scl) shift_data_en = 1'b1;
         if (tcount_q == 1) begin
           state_d = ReadHoldBit;
           load_tcount = 1'b1;
           tcount_sel = tHoldBit;
-          shift_data_en = 1'b1;
         end
       end
       // ReadHoldBit: SCL is pulled low
